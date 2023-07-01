@@ -1,62 +1,54 @@
 package splitter.commands;
 
 import splitter.model.Ledger;
-import splitter.model.Transaction;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.TreeSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class BalanceCommand implements Command {
-    boolean open = false;
+    private final Ledger ledger;
+    private boolean open;
 
-    @Override
-    public boolean argsAreValid(String[] args) {
-        return args.length == 0 || args.length == 1 && ("open".equals(args[0]) || "close".equals(args[0]));
+    public BalanceCommand() {
+        this.ledger = Ledger.getInstance();
     }
 
     @Override
     public boolean execute(LocalDate date, String[] args) {
-        if (!argsAreValid(args)) {
-            System.out.println("Illegal command arguments");
-            return true;
-        }
-        open = args.length > 0 && ("open".equals(args[0]));
+        open = args.length > 0 && "open".equals(args[0]);
 
-        // Use TreeSet to keep the lines sorted and unique
-        TreeSet<String> outputLines = new TreeSet<>();
+        Set<String> people = ledger.getTransactions().stream()
+                .flatMap(t -> Stream.of(t.from(), t.to()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        List<Transaction> transactions = Ledger.getInstance().getTransactions();
-        for (Transaction t : transactions) {
-            String agent = t.from();
-            String friend = t.to();
-
-            int agentBalance;
-            int friendBalance;
-
-            if (open) {
-                agentBalance = Ledger.getInstance().getOpeningBalance(date, agent, friend);
-                friendBalance = Ledger.getInstance().getOpeningBalance(date, friend, agent);
-            } else {
-                agentBalance = Ledger.getInstance().getClosingBalance(date, agent, friend);
-                friendBalance = Ledger.getInstance().getClosingBalance(date, friend, agent);
-            }
-
-            if (agentBalance > friendBalance) {
-                outputLines.add(String.format("%s owes %s %d", agent, friend, agentBalance));
-            } else if (friendBalance > agentBalance) {
-                outputLines.add(String.format("%s owes %s %d", friend, agent, friendBalance));
-            } else {
-                outputLines.add("No repayments");
+        Set<String> outputLines = new LinkedHashSet<>();
+        for (String personFrom : people) {
+            for (String personTo : people) {
+                if (!personFrom.equals(personTo)) {
+                    BigDecimal balance;
+                    if (open) {
+                        balance = ledger.getOpeningBalance(date, personFrom, personTo);
+                    } else {
+                        balance = ledger.getClosingBalance(date, personFrom, personTo);
+                    }
+                    if (balance.compareTo(BigDecimal.ZERO) > 0) {
+                        outputLines.add(String.format("%s owes %s %.2f", personFrom, personTo, balance.doubleValue()));
+                    }
+                }
             }
         }
 
-        // Print the lines
-        for (String line : outputLines) {
-            System.out.println(line);
+        // Output the balances
+        if (outputLines.isEmpty()) {
+            System.out.println("No repayments");
+        } else {
+            outputLines.stream().sorted()
+                    .forEach(System.out::println);
         }
         return true;
     }
-
-
 }

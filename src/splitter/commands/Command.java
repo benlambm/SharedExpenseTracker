@@ -1,5 +1,6 @@
 package splitter.commands;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public interface Command {
@@ -10,13 +11,15 @@ public interface Command {
             System.out.println("Illegal command arguments");
             return false;
         }
-        int amount;
+
+        BigDecimal amount;
         try {
-            amount = Integer.parseInt(args[2]);
+            amount = new BigDecimal(args[2]);
         } catch (NumberFormatException e) {
             System.out.println("Illegal command arguments");
             return false;
         }
+
         return true;
     }
 }

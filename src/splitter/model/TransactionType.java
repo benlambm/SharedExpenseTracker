@@ -2,5 +2,6 @@ package splitter.model;
 
 public enum TransactionType {
     LOAN,
-    REPAYMENT
+    REPAYMENT,
+    PURCHASE
 }

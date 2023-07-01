@@ -21,11 +21,13 @@ class Application {
 
     public Application() {
         this.commands = new HashMap<>();
-        commands.put("exit", new ExitCommand());
-        commands.put("help", new HelpCommand(commands));
-        commands.put("borrow", new BorrowCommand());
-        commands.put("repay", new RepayCommand());
         commands.put("balance", new BalanceCommand());
+        commands.put("borrow", new BorrowCommand());
+        commands.put("exit", new ExitCommand());
+        commands.put("group", new EnhancedGroupCommand());
+        commands.put("help", new HelpCommand(commands));
+        commands.put("purchase", new EnhancedPurchaseCommand());
+        commands.put("repay", new RepayCommand());
     }
 
     public void run() {
@@ -38,27 +40,33 @@ class Application {
 
             // Extract date if present
             LocalDate date = LocalDate.now();
-            int cmdIndex = 0;
+            int argIndex = 0;
             if (parts[0].contains(".")) {
                 // Attempt to parse date
                 try {
                     date = LocalDate.parse(parts[0], DateTimeFormatter.ofPattern("yyyy.MM.dd"));
-                    cmdIndex = 1;
+                    argIndex = 1;
                 } catch (DateTimeParseException e) {
                     System.out.println("Invalid date format. Expected yyyy.MM.dd");
+                    continue;
+                }
+
+                if (argIndex >= parts.length) {
+                    System.out.println("Command not provided. Print help to show commands list");
                     continue;
                 }
             }
 
             // Execute command
-            String cmdName = parts[cmdIndex];
+            String cmdName = parts[argIndex];
             Command cmd = commands.get(cmdName);
             if (cmd == null) {
                 System.out.println("Unknown command. Print help to show commands list");
             } else {
-                String[] args = parts.length == 1 ? new String[0] : Arrays.copyOfRange(parts, cmdIndex + 1, parts.length);
+                String[] args = parts.length == 1 ? new String[0] : Arrays.copyOfRange(parts, argIndex + 1, parts.length);
                 running = cmd.execute(date, args);
             }
         }
     }
+
 }
